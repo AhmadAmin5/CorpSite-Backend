@@ -1,0 +1,20 @@
+{
+  "name": "corpsite-backend",
+  "version": "1.0.0",
+  "description": "NodeJS backend for corporation site",
+  "homepage": "https://github.com/AhmadAmin5/CorpSite-Backend#readme",
+  "bugs": {
+    "url": "https://github.com/AhmadAmin5/CorpSite-Backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AhmadAmin5/CorpSite-Backend.git"
+  },
+  "license": "ISC",
+  "author": "M Ahmad Amin",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

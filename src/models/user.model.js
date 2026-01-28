@@ -37,13 +37,13 @@ const userSchema = new mongoose.Schema(
             default: "viewer"
         },
 
-        password: {
-            type: String
+        password: String,
+
+        gender: {
+            type: String,
+            enum: ["male", "female", "other",],
+            default: null
         },
-
-        invitationToken: String,
-
-        invitationExpiry: Date,
 
         isActivated: {
             type: Boolean,
@@ -55,16 +55,20 @@ const userSchema = new mongoose.Schema(
             default: false
         },
 
-        gender: {
-            type: String,
-            enum: ["male", "female", "other"]
+        isDeleted: {
+            type: Boolean,
+            default: false
         },
 
-        dateOfBirth: { type: Date },
+        invitationToken: String,
 
-        refreshToken: { type: String },
+        invitationExpiry: Date,
 
-        profilePicture: { type: String }
+        dateOfBirth: Date,
+
+        refreshToken: String,
+
+        profilePicture: String
     },
     {
         timestamps: true

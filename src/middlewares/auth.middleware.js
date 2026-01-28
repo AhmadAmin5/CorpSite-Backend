@@ -8,14 +8,19 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
     const token = req.header("Authorization")?.replace("Bearer ", "");
     if (!token) throw new ApiError(401, "Unauthorized requet");
 
-    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-
-    const user = await User.findById(decodedToken?._id).select("-password -refreshToken");
-    if (!user) throw new ApiError(401, "Invalid access token");
-
-    req.user = user;
-
-    next();
+    try {
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = await User.findOne({
+            _id: decodedToken?._id,
+            isDeleted: false
+        }).select("-password  -refreshToken");
+        if (!user) throw new ApiError(401, "Invalid access token", [{ code: "INVALID_TOKEN" }]);
+        if (user.isBlocked) throw new ApiError(404, "User blocked", [{ code: "USER_BLOCKED" }]);
+        req.user = user;
+        next();
+    } catch (error) {
+        throw new ApiError(401, "Invalid access token or token malfunctioned");
+    }
 });
 
 export default verifyJWT;

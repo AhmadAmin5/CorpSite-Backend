@@ -6,30 +6,50 @@ import crypto from "crypto";
 import User from "../models/user.model.js";
 import logger from "../utils/logger.js";
 
-const cookieOptions = { httpOnly: true, secure: true, sameSite: "none" };
+const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none"
+};
 
 const login = asyncHandler(async (req, res) => {
     const { username = undefined, email = undefined, password = undefined } = req.body;
 
-    if (!(username || email)) throw new ApiError(400, "Username or Email required for Login", [{ code: "MISSING_FIELDS" }]);
+    if (!(username || email))
+        throw new ApiError(400, "Username or Email required for Login", [{ code: "MISSING_FIELDS" }]);
     if (!password) throw new ApiError(400, "Password required", [{ code: "MISSING_FIELDS" }]);
 
-    const user = await User.findOne({ $or: [{ email }, { username }] });
+    const user = await User.findOne({
+        $or: [{ email }, { username }],
+        isDeleted: false
+    });
     if (!user) throw new ApiError(404, "User not found", [{ code: "USER_NOT_FOUND" }]);
-    //Edge case of recieving both username and email
 
-    if (!(await user.isPasswordCorrect(password))) throw new ApiError(401, "Invalid Credientials", [{ code: "INVALID_CREDIENTIALS" }]);
+    if (!(await user.isPasswordCorrect(password)))
+        throw new ApiError(401, "Invalid Credientials", [{ code: "INVALID_CREDIENTIALS" }]);
 
     if (!user.isActivated) throw new ApiError(401, "User not actived", [{ code: "NOT_ACTIVATED" }]);
     if (user.isBlocked) throw new ApiError(401, "User blocked", [{ code: "BLOCKED" }]);
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user);
 
-    const userToSend = { username: user.username, fullName: user.fullName, email: user.email, profilePicture: user.profilePicture };
+    const userToSend = {
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        profilePicture: user.profilePicture,
+        role: user.role
+    };
 
     res.status(200)
         .cookie("refreshToken", refreshToken, cookieOptions)
-        .json(new ApiResponse(200, { user: userToSend, accessToken }, "User logged in and tokens generated successfully"));
+        .json(
+            new ApiResponse(
+                200,
+                { user: userToSend, accessToken },
+                "User logged in and tokens generated successfully"
+            )
+        );
 });
 
 const logout = asyncHandler(async (req, res) => {
@@ -40,9 +60,10 @@ const logout = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, null, "User logged out successfully"));
 });
 
-const refresh = asyncHandler(async (req, res, next) => {
+const refresh = asyncHandler(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) throw new ApiError(401, "No refreshToken recieved", [{ code: "REFRESH_TOKEN_MISSING" }]);
+    if (!refreshToken)
+        throw new ApiError(401, "No refreshToken recieved", [{ code: "REFRESH_TOKEN_MISSING" }]);
 
     const decodedToken = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
     if (!decodedToken) throw new ApiError(401, "Invalid refreshToken", [{ code: "INVALID_REFRESH_TOKEN" }]);
@@ -50,42 +71,15 @@ const refresh = asyncHandler(async (req, res, next) => {
     const user = await User.findById(decodedToken._id).select("-password");
     const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshToken(user);
 
-    const userToSend = { username: user.username, fullName: user.fullName, email: user.email };
+    const userToSend = {
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email
+    };
 
     res.status(200)
         .cookie("refreshToken", newRefreshToken, cookieOptions)
         .json(new ApiResponse(200, { user: userToSend, accessToken }, "Access token refreshed"));
-});
-
-const inviteUser = asyncHandler(async (req, res) => {
-    const { email, username, fullName, role } = req.body;
-
-    if ([email, username, fullName].some((field) => field?.trim() === "")) {
-        throw new ApiError(400, "Email, Username, and Full Name are required", [{ code: "MISSING_FIELDS" }]);
-    }
-
-    const existedUser = await User.findOne({ $or: [{ username }, { email }] });
-    if (existedUser) {
-        throw new ApiError(409, "User with email or username already exists", [{ code: "USER_EXISTS" }]);
-    }
-
-    const invitationToken = crypto.randomBytes(32).toString("hex");
-
-    const invitationExpiry = Date.now() + 24 * 60 * 60 * 1000;
-
-    const user = await User.create({
-        email,
-        username,
-        fullName,
-        role: role || "viewer",
-        invitationToken,
-        invitationExpiry,
-        isActivated: false
-    });
-
-    const inviteLink = `${process.env.CORS_ORIGIN}/activate-account?token=${invitationToken}`;
-
-    return res.status(201).json(new ApiResponse(201, { inviteLink, invitationToken }, "User invited successfully. Share the link."));
 });
 
 const activateAccount = asyncHandler(async (req, res) => {
@@ -111,30 +105,210 @@ const activateAccount = asyncHandler(async (req, res) => {
 
     await user.save();
 
-    return res.status(200).json(new ApiResponse(200, {}, "Account activated successfully. You can now login."));
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "Account activated successfully. You can now login."));
 });
 
-const checkUsername = asyncHandler(async (req, res, next) => {
+const checkUsername = asyncHandler(async (req, res) => {
     const { username } = req.body;
     if (!username) throw new ApiError(400, "No username recieved", [{ code: "USERNAME_MISSING" }]);
 
     if (await User.findOne({ username }))
         res.status(200).json(
-            new ApiResponse(200, { username, userExists: true, usernameAvailable: false }, "User exists. Username already taken")
+            new ApiResponse(
+                200,
+                {
+                    username,
+                    userExists: true,
+                    usernameAvailable: false
+                },
+                "User exists. Username already taken"
+            )
         );
     else
         res.status(200).json(
-            new ApiResponse(200, { username, userExists: false, usernameAvailable: true }, "User does not exists. Username available")
+            new ApiResponse(
+                200,
+                {
+                    username,
+                    userExists: false,
+                    usernameAvailable: true
+                },
+                "User does not exists. Username available"
+            )
         );
 });
 
-const checkEmail = asyncHandler(async (req, res, next) => {
+const checkEmail = asyncHandler(async (req, res) => {
     const { email } = req.body;
     if (!email) throw new ApiError(400, "No email recieved", [{ code: "EMAIL_MISSING" }]);
 
     if (await User.findOne({ email }))
-        res.status(200).json(new ApiResponse(200, { email, userExists: true, emailAvailable: false }, "User exists."));
-    else res.status(200).json(new ApiResponse(200, { email, userExists: false, emailAvailable: true }, "User does not exists."));
+        res.status(200).json(
+            new ApiResponse(200, { email, userExists: true, emailAvailable: false }, "User exists.")
+        );
+    else
+        res.status(200).json(
+            new ApiResponse(200, { email, userExists: false, emailAvailable: true }, "User does not exists.")
+        );
+});
+
+const inviteUser = asyncHandler(async (req, res) => {
+    const { email, username, fullName, role } = req.body;
+
+    if ([email, username, fullName].some((field) => field?.trim() === "")) {
+        throw new ApiError(400, "Email, Username, and Full Name are required", [{ code: "MISSING_FIELDS" }]);
+    }
+
+    const existedUser = await User.findOne({
+        $or: [{ username }, { email }]
+    });
+    if (existedUser) {
+        throw new ApiError(409, "User with email or username already exists", [{ code: "USER_EXISTS" }]);
+    }
+
+    const invitationToken = crypto.randomBytes(32).toString("hex");
+
+    const invitationExpiry = Date.now() + 24 * 60 * 60 * 1000;
+
+    const user = await User.create({
+        email,
+        username,
+        fullName,
+        role: role || "viewer",
+        invitationToken,
+        invitationExpiry,
+        isActivated: false
+    });
+
+    if (!user) throw new ApiError(500, "Internal Server Error");
+
+    const inviteLink = `${process.env.CORS_ORIGIN}/activate-account?token=${invitationToken}`;
+
+    return res
+        .status(201)
+        .json(
+            new ApiResponse(
+                201,
+                { inviteLink, invitationToken },
+                "User invited successfully. Share the link."
+            )
+        );
+});
+
+const getAllUsers = asyncHandler(async (req, res) => {
+    //TODO Implement Search
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    try {
+        const users = await User.find({ isDeleted: false })
+            .select("-password  -refreshToken")
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const totalUsers = await User.countDocuments({
+            isDeleted: false
+        });
+
+        res.status(200).json(
+            new ApiResponse(
+                200,
+                {
+                    users,
+                    pagination: {
+                        totalUsers,
+                        currentPage: page,
+                        totalPages: Math.ceil(totalUsers / limit)
+                    }
+                },
+                "Users sent"
+            )
+        );
+    } catch (error) {
+        throw new ApiError(500, "Internal Server Error");
+    }
+});
+
+const getUser = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const user = await User.findById(id).select("-password  -refreshToken");
+    if (!user || user.isDeleted) throw new ApiError(404, "User not found", [{ code: "USER_NOT_FOUND" }]);
+    res.status(200).json(new ApiResponse(200, user, "User found"));
+});
+
+const updateUser = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const { fullName, email, username, role, phone, gender, dateOfBirth, isBlocked } = req.body;
+
+    const user = await User.findById(id);
+
+    if (!user || user.isDeleted) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (email && email !== user.email) {
+        const existedUser = await User.findOne({
+            email: email,
+            _id: { $ne: id } // Exclude the current user from the check
+        });
+        if (existedUser) {
+            throw new ApiError(409, "Email is already in use by another account", [{ code: "EMAIL_EXISTS" }]);
+        }
+        user.email = email;
+    }
+
+    if (username && username !== user.username) {
+        const existedUser = await User.findOne({
+            username: username,
+            _id: { $ne: id }
+        });
+        if (existedUser) {
+            throw new ApiError(409, "Username is already taken", [{ code: "USERNAME_EXISTS" }]);
+        }
+        user.username = username;
+    }
+
+    if (fullName) user.fullName = fullName;
+    if (phone) user.phone = phone;
+    if (gender) user.gender = gender;
+    if (dateOfBirth) user.dateOfBirth = dateOfBirth;
+
+    if (role) user.role = role;
+
+    if (typeof isBlocked === "boolean") user.isBlocked = isBlocked;
+
+    const updatedUser = await user.save();
+
+    if (!updatedUser) throw new ApiError(500, "Internal Server Error");
+
+    const responseUser = await User.findById(id).select("-password -refreshToken");
+
+    return res.status(200).json(new ApiResponse(200, responseUser, "User details updated successfully"));
+});
+
+const deleteUser = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+    if (!user) throw new ApiError(404, "User not found", [{ code: "USER_NOT_FOUND" }]);
+
+    user.isDeleted = true;
+
+    //freeing up username and email uniqueness
+    const timestamp = Date.now();
+    user.username = `${user.username}_deleted_${timestamp}`;
+    user.email = `${user.email}_deleted_${timestamp}`;
+
+    user.refreshToken = undefined;
+
+    await user.save();
+
+    res.status(200).json(new ApiResponse(200, null, "User Deleted"));
 });
 
 const generateAccessAndRefreshToken = async (user) => {
@@ -150,4 +324,16 @@ const generateAccessAndRefreshToken = async (user) => {
     }
 };
 
-export { login, logout, refresh, inviteUser, activateAccount, checkUsername, checkEmail };
+export {
+    login,
+    logout,
+    refresh,
+    activateAccount,
+    checkUsername,
+    checkEmail,
+    inviteUser,
+    getAllUsers,
+    getUser,
+    updateUser,
+    deleteUser
+};

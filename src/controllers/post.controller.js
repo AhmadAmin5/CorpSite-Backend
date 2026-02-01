@@ -4,7 +4,18 @@ import asyncHandler from "../utils/asyncHandler.js";
 import Post from "../models/post.model.js";
 
 const createPost = asyncHandler(async (req, res) => {
-    const { title, slug, content, excerpt, featuredImage, status } = req.body;
+    const {
+        title,
+        slug,
+        content,
+        excerpt,
+        featuredImage,
+        status,
+        category,
+        tags,
+        metaTitle,
+        metaDescription
+    } = req.body;
 
     if (!title) {
         throw new ApiError(400, "Title is required", [{ code: "MISSING_TITLE" }]);
@@ -22,6 +33,10 @@ const createPost = asyncHandler(async (req, res) => {
         excerpt,
         featuredImage,
         status,
+        category,
+        tags,
+        metaTitle,
+        metaDescription,
         author: req.user._id,
         publishedAt: status === "published" ? Date.now() : null
     });
@@ -41,6 +56,10 @@ const getPosts = asyncHandler(async (req, res) => {
 
     if (req.query.search) {
         filter.title = { $regex: req.query.search, $options: "i" };
+    }
+
+    if (req.query.category) {
+        filter.category = req.query.category;
     }
 
     const posts = await Post.find(filter)
@@ -87,7 +106,18 @@ const getPost = asyncHandler(async (req, res) => {
 
 const updatePost = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { title, slug, content, excerpt, featuredImage, status } = req.body;
+    const {
+        title,
+        slug,
+        content,
+        excerpt,
+        featuredImage,
+        status,
+        category,
+        tags,
+        metaTitle,
+        metaDescription
+    } = req.body;
 
     const post = await Post.findById(id);
 
@@ -107,6 +137,11 @@ const updatePost = asyncHandler(async (req, res) => {
     post.content = content !== undefined ? content : post.content;
     post.excerpt = excerpt !== undefined ? excerpt : post.excerpt;
     post.featuredImage = featuredImage !== undefined ? featuredImage : post.featuredImage;
+
+    if (category) post.category = category;
+    if (tags) post.tags = tags;
+    if (metaTitle !== undefined) post.metaTitle = metaTitle;
+    if (metaDescription !== undefined) post.metaDescription = metaDescription;
 
     if (status && status !== post.status) {
         post.status = status;

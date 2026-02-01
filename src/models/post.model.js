@@ -22,6 +22,23 @@ const postSchema = new mongoose.Schema(
         excerpt: {
             type: String
         },
+        category: {
+            type: String,
+            default: "Uncategorized",
+            index: true
+        },
+        tags: {
+            type: [String],
+            default: []
+        },
+        metaTitle: {
+            type: String,
+            trim: true
+        },
+        metaDescription: {
+            type: String,
+            trim: true
+        },
         featuredImage: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Media"

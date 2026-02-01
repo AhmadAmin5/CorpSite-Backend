@@ -14,10 +14,12 @@ app.use(cookieParser());
 // routes import
 
 import userRouter from "./routes/user.routes.js";
+import mediaRouter from "./routes/media.routes.js";
 
 // routes declaration
 
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/media", mediaRouter);
 
 app.use(errorHandler);
 

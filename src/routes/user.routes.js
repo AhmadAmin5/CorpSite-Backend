@@ -1,6 +1,7 @@
 import { Router } from "express";
 import verifyJWT from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/role.middleware.js";
+import { PERMISSIONS } from "../config/roles.js";
 import {
     login,
     logout,
@@ -25,7 +26,7 @@ router.route("/activate-account").post(activateAccount);
 router.route("/check-username").post(checkUsername);
 router.route("/check-email").post(checkEmail);
 
-router.use(verifyJWT, authorizeRoles("admin"));
+router.use(verifyJWT, authorizeRoles(PERMISSIONS.CAN_MANAGE_USERS));
 
 router.route("/").post(inviteUser).get(getAllUsers);
 router.route("/:id").get(getUser).patch(updateUser).delete(deleteUser);

@@ -191,7 +191,7 @@ const inviteUser = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 201,
-                { inviteLink, invitationToken },
+                { user, inviteLink, invitationToken },
                 "User invited successfully. Share the link."
             )
         );

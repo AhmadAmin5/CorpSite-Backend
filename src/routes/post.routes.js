@@ -9,7 +9,7 @@ const router = Router();
 
 router.route("/:id").get(getPost);
 
-router.use(verifyJWT, authorizeRoles(PERMISSIONS.CAN_EDIT_CONTENT));
+router.use(verifyJWT, authorizeRoles(PERMISSIONS.CAN_MANAGE_CONTENT));
 
 router.route("/").get(getPosts).post(createPost);
 

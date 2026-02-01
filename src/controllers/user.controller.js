@@ -34,6 +34,7 @@ const login = asyncHandler(async (req, res) => {
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user);
 
     const userToSend = {
+        _id: user._id,
         username: user.username,
         fullName: user.fullName,
         email: user.email,
@@ -198,21 +199,53 @@ const inviteUser = asyncHandler(async (req, res) => {
 });
 
 const getAllUsers = asyncHandler(async (req, res) => {
-    //TODO Implement Search
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
+    // Destructure filters
+    const { search, role, status } = req.query;
+
+    // Base query
+    const query = { isDeleted: false };
+
+    // 1. Search Filter (by Name, Username, or Email)
+    if (search) {
+        const searchRegex = { $regex: search, $options: "i" };
+        query.$or = [
+            { fullName: searchRegex },
+            { username: searchRegex },
+            { email: searchRegex }
+        ];
+    }
+
+    // 2. Role Filter
+    if (role && role !== 'all') {
+        query.role = role;
+    }
+
+    // 3. Status Filter
+    if (status && status !== 'all') {
+        if (status === 'blocked') {
+            query.isBlocked = true;
+        } else if (status === 'active') {
+            query.isBlocked = false;
+            query.isActivated = true;
+        } else if (status === 'invited') {
+            // Invited means not blocked AND not yet activated
+            query.isBlocked = false;
+            query.isActivated = false;
+        }
+    }
+
     try {
-        const users = await User.find({ isDeleted: false })
+        const users = await User.find(query)
             .select("-password  -refreshToken")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
 
-        const totalUsers = await User.countDocuments({
-            isDeleted: false
-        });
+        const totalUsers = await User.countDocuments(query); // Count documents matching the filters
 
         res.status(200).json(
             new ApiResponse(

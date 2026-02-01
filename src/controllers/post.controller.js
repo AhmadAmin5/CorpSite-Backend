@@ -63,7 +63,7 @@ const getPosts = asyncHandler(async (req, res) => {
     }
 
     const posts = await Post.find(filter)
-        .populate("author", "fullName username")
+        .populate("author", "fullName username profilePicture _id")
         .populate("featuredImage", "url")
         .sort({ createdAt: -1 })
         .skip(skip)

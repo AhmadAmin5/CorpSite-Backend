@@ -63,7 +63,7 @@ const getPosts = asyncHandler(async (req, res) => {
     }
 
     const posts = await Post.find(filter)
-        .populate("author", "fullName username profilePicture _id")
+        .populate("author", "fullName username profilePicture _id role")
         .populate("featuredImage", "url")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -94,7 +94,7 @@ const getPost = asyncHandler(async (req, res) => {
     const query = isId ? { _id: id } : { slug: id };
 
     const post = await Post.findOne(query)
-        .populate("author", "fullName username profilePicture")
+        .populate("author", "fullName username profilePicture _.id role")
         .populate("featuredImage");
 
     if (!post) {

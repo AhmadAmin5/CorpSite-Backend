@@ -24,7 +24,6 @@ const logger = {
 
     error: (msg) => {
         if (levels.ERROR <= currentLevel) {
-            // Errors show even if logsEnabled is false, usually
             console.log(`${getTime()} ` + chalk.red.bold("✖ ") + chalk.red(msg));
         }
     },

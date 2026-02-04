@@ -11,12 +11,8 @@ router.route("/:id").get(getPage);
 
 router.use(verifyJWT, authorizeRoles(PERMISSIONS.CAN_MANAGE_CONTENT));
 
-router.route("/")
-    .get(getPages)
-    .post(createPage);
+router.route("/").get(getPages).post(createPage);
 
-router.route("/:id")
-    .patch(updatePage)
-    .delete(deletePage);
+router.route("/:id").patch(updatePage).delete(deletePage);
 
 export default router;

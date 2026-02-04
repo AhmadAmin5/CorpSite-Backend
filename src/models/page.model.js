@@ -1,22 +1,25 @@
 import mongoose from "mongoose";
 
-const blockSchema = new mongoose.Schema({
-    id: { type: String, required: true }, // Unique ID for frontend drag-and-drop
-    type: {
-        type: String,
-        required: true,
-        enum: ["hero", "text", "features", "testimonial"]
+const blockSchema = new mongoose.Schema(
+    {
+        id: { type: String, required: true }, // Unique ID for frontend drag-and-drop
+        type: {
+            type: String,
+            required: true,
+            enum: ["hero", "text", "features", "testimonial"]
+        },
+        data: {
+            type: mongoose.Schema.Types.Mixed,
+            default: {}
+        },
+        settings: {
+            backgroundColor: { type: String, default: "transparent" },
+            paddingTop: { type: String, default: "md" },
+            paddingBottom: { type: String, default: "md" }
+        }
     },
-    data: {
-        type: mongoose.Schema.Types.Mixed,
-        default: {}
-    },
-    settings: {
-        backgroundColor: { type: String, default: "transparent" },
-        paddingTop: { type: String, default: "md" },
-        paddingBottom: { type: String, default: "md" }
-    }
-}, { _id: false });
+    { _id: false }
+);
 
 const pageSchema = new mongoose.Schema(
     {
@@ -24,7 +27,7 @@ const pageSchema = new mongoose.Schema(
             type: String,
             required: true,
             trim: true
-        },        
+        },
         slug: {
             type: String,
             required: true,
@@ -84,7 +87,7 @@ pageSchema.pre("save", async function () {
             this.fullPath = this.slug;
         } else {
             const parentPage = await mongoose.model("Page").findById(this.parent);
-            
+
             if (parentPage) {
                 this.fullPath = `${parentPage.fullPath}/${this.slug}`;
             } else {

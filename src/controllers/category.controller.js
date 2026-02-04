@@ -9,9 +9,15 @@ const createCategory = asyncHandler(async (req, res) => {
     if (!name) throw new ApiError(400, "Name is required");
 
     if (!slug) {
-        slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+        slug = name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)+/g, "");
     } else {
-        slug = slug.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+        slug = slug
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)+/g, "");
     }
 
     const existing = await Category.findOne({ slug });
@@ -39,8 +45,11 @@ const updateCategory = asyncHandler(async (req, res) => {
     if (description !== undefined) category.description = description;
 
     if (slug && slug !== category.slug) {
-        slug = slug.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
-        
+        slug = slug
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)+/g, "");
+
         const existing = await Category.findOne({ slug });
         if (existing && existing._id.toString() !== id) {
             throw new ApiError(409, "Slug is already in use");

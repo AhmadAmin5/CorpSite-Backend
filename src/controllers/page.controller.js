@@ -45,14 +45,20 @@ const getPages = asyncHandler(async (req, res) => {
 
     const totalPagesCount = await Page.countDocuments(query);
 
-    return res.status(200).json(new ApiResponse(200, {
-        pages,
-        pagination: {
-            totalItems: totalPagesCount,
-            currentPage: pageNum,
-            totalPages: Math.ceil(totalPagesCount / limit)
-        }
-    }, "Pages fetched successfully"));
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                pages,
+                pagination: {
+                    totalItems: totalPagesCount,
+                    currentPage: pageNum,
+                    totalPages: Math.ceil(totalPagesCount / limit)
+                }
+            },
+            "Pages fetched successfully"
+        )
+    );
 });
 
 const getPage = asyncHandler(async (req, res) => {
@@ -79,7 +85,7 @@ const updatePage = asyncHandler(async (req, res) => {
     }
 
     // Update fields dynamically
-    Object.keys(updates).forEach(key => {
+    Object.keys(updates).forEach((key) => {
         page[key] = updates[key];
     });
 

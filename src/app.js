@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import errorHandler from "./utils/errorHandler.js";
-import ApiVersion from "./config/ApiVersion.js"
+import ApiVersion from "./config/ApiVersion.js";
 
 const app = express();
 
@@ -14,6 +14,7 @@ app.use(cookieParser());
 
 // routes import
 
+import authRoutes from "./routes/auth.routes.js";
 import userRouter from "./routes/user.routes.js";
 import mediaRouter from "./routes/media.routes.js";
 import postRouter from "./routes/post.routes.js";
@@ -22,6 +23,7 @@ import pageRouter from "./routes/page.routes.js";
 
 // routes declaration
 
+app.use(ApiVersion + "/auth", authRoutes);
 app.use(ApiVersion + "/user", userRouter);
 app.use(ApiVersion + "/media", mediaRouter);
 app.use(ApiVersion + "/post", postRouter);

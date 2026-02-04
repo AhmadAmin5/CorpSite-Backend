@@ -3,10 +3,6 @@ import verifyJWT from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/role.middleware.js";
 import { PERMISSIONS } from "../config/roles.js";
 import {
-    login,
-    logout,
-    refresh,
-    activateAccount,
     checkUsername,
     checkEmail,
     inviteUser,
@@ -18,11 +14,8 @@ import {
 
 const router = Router();
 
-router.route("/login").post(login);
-router.route("/logout").post(verifyJWT, logout);
 // router.route("/profile").get(verifyJWT, getProfile)
-router.route("/refresh").post(refresh);
-router.route("/activate-account").post(activateAccount);
+
 router.route("/check-username").post(checkUsername);
 router.route("/check-email").post(checkEmail);
 

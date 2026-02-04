@@ -11,15 +11,12 @@ import { PERMISSIONS } from "../config/roles.js";
 
 const router = Router();
 
-router.route("/").get(getCategories)
+router.route("/").get(getCategories);
 
 router.use(verifyJWT, authorizeRoles(PERMISSIONS.CAN_MANAGE_CONTENT));
 
-router.route("/")
-    .post(createCategory); 
+router.route("/").post(createCategory);
 
-router.route("/:id")
-    .patch(updateCategory)
-    .delete(deleteCategory);
+router.route("/:id").patch(updateCategory).delete(deleteCategory);
 
 export default router;

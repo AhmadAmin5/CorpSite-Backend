@@ -66,6 +66,8 @@ const userSchema = new mongoose.Schema(
 
         dateOfBirth: Date,
 
+        bio: String,
+
         refreshToken: String,
 
         profilePicture: String

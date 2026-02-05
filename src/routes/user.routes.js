@@ -1,6 +1,7 @@
 import { Router } from "express";
 import verifyJWT from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/role.middleware.js";
+import upload from "../middlewares/multer.middleware.js";
 import { PERMISSIONS } from "../config/roles.js";
 import {
     checkUsername,
@@ -14,14 +15,14 @@ import {
 
 const router = Router();
 
-// router.route("/profile").get(verifyJWT, getProfile)
-
 router.route("/check-username").post(checkUsername);
 router.route("/check-email").post(checkEmail);
+
+router.route("/:id").get(getUser)
 
 router.use(verifyJWT, authorizeRoles(PERMISSIONS.CAN_MANAGE_USERS));
 
 router.route("/").post(inviteUser).get(getAllUsers);
-router.route("/:id").get(getUser).patch(updateUser).delete(deleteUser);
+router.route("/:id").patch(upload.single("file"), updateUser).delete(deleteUser);
 
 export default router;

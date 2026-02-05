@@ -3,6 +3,7 @@ import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 
 const cookieOptions = {
     httpOnly: true,
@@ -20,7 +21,8 @@ const login = asyncHandler(async (req, res) => {
     const user = await User.findOne({
         $or: [{ email }, { username }],
         isDeleted: false
-    });
+    }).select("-refreshToken");
+
     if (!user) throw new ApiError(404, "User not found", [{ code: "USER_NOT_FOUND" }]);
 
     if (!(await user.isPasswordCorrect(password)))
@@ -28,24 +30,17 @@ const login = asyncHandler(async (req, res) => {
 
     if (!user.isActivated) throw new ApiError(401, "User not actived", [{ code: "NOT_ACTIVATED" }]);
     if (user.isBlocked) throw new ApiError(401, "User blocked", [{ code: "BLOCKED" }]);
-
+    
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user);
-
-    const userToSend = {
-        _id: user._id,
-        username: user.username,
-        fullName: user.fullName,
-        email: user.email,
-        profilePicture: user.profilePicture,
-        role: user.role
-    };
+    
+    delete user.password;
 
     res.status(200)
         .cookie("refreshToken", refreshToken, cookieOptions)
         .json(
             new ApiResponse(
                 200,
-                { user: userToSend, accessToken },
+                { user, accessToken },
                 "User logged in and tokens generated successfully"
             )
         );
@@ -109,6 +104,59 @@ const activateAccount = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "Account activated successfully. You can now login."));
 });
 
+const updateUser = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const { fullName, phone, gender, dateOfBirth, bio, username } = req.body;
+
+    if (req.file) {
+        try {
+            const result = await uploadToCloudinary(req.file.buffer);
+            
+            if (result?.secure_url) {
+                user.profilePicture = result.secure_url;
+            }
+        } catch (error) {
+            throw new ApiError(500, "Failed to upload profile picture");
+        }
+    }
+
+    if (fullName) user.fullName = fullName;
+    if (phone) user.phone = phone;
+    if (gender) user.gender = gender;
+    if (bio) user.bio = bio;
+    if (dateOfBirth) user.dateOfBirth = dateOfBirth;
+
+    if (username && username !== user.username) {
+        const existingUser = await User.findOne({ 
+            username, 
+            _id: { $ne: user._id } 
+        });
+        
+        if (existingUser) {
+            throw new ApiError(409, "Username is already taken");
+        }
+        user.username = username;
+    }
+
+    const updatedUser = await user.save();
+    
+    updatedUser.password = undefined;
+    updatedUser.refreshToken = undefined;
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, updatedUser, "Profile updated successfully"));
+});
+
+const me = asyncHandler(async (req, res) => {
+    res.status(200).json(new ApiResponse(200, req.user, "User Profile sent"));
+});
+
 const generateAccessAndRefreshToken = async (user) => {
     try {
         const accessToken = await user.generateAccessToken();
@@ -121,4 +169,4 @@ const generateAccessAndRefreshToken = async (user) => {
     }
 };
 
-export { login, logout, refresh, activateAccount };
+export { me, login, logout, refresh, updateUser, activateAccount };

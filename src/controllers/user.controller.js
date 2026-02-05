@@ -3,6 +3,8 @@ import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import crypto from "crypto";
 import User from "../models/user.model.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
+
 
 const checkUsername = asyncHandler(async (req, res) => {
     const { username } = req.body;
@@ -96,24 +98,18 @@ const getAllUsers = asyncHandler(async (req, res) => {
     const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Destructure filters
     const { search, role, status } = req.query;
 
-    // Base query
     const query = { isDeleted: false };
 
-    // 1. Search Filter (by Name, Username, or Email)
     if (search) {
         const searchRegex = { $regex: search, $options: "i" };
         query.$or = [{ fullName: searchRegex }, { username: searchRegex }, { email: searchRegex }];
     }
 
-    // 2. Role Filter
     if (role && role !== "all") {
         query.role = role;
     }
-
-    // 3. Status Filter
     if (status && status !== "all") {
         if (status === "blocked") {
             query.isBlocked = true;
@@ -121,7 +117,6 @@ const getAllUsers = asyncHandler(async (req, res) => {
             query.isBlocked = false;
             query.isActivated = true;
         } else if (status === "invited") {
-            // Invited means not blocked AND not yet activated
             query.isBlocked = false;
             query.isActivated = false;
         }
@@ -165,7 +160,7 @@ const getUser = asyncHandler(async (req, res) => {
 const updateUser = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const { fullName, email, username, role, phone, gender, dateOfBirth, isBlocked } = req.body;
+    const { fullName, email, username, role, phone, gender, bio, dateOfBirth, isBlocked } = req.body;
 
     const user = await User.findById(id);
 
@@ -173,10 +168,22 @@ const updateUser = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User not found");
     }
 
+    if (req.file) {
+        try {
+            const result = await uploadToCloudinary(req.file.buffer);
+            
+            if (result?.secure_url) {
+                user.profilePicture = result.secure_url;
+            }
+        } catch (error) {
+            throw new ApiError(500, "Failed to upload profile picture: " + error.message, [{ code: "UPLOAD_FAILED" }]);
+        }
+    }
+
     if (email && email !== user.email) {
         const existedUser = await User.findOne({
             email: email,
-            _id: { $ne: id } // Exclude the current user from the check
+            _id: { $ne: id }
         });
         if (existedUser) {
             throw new ApiError(409, "Email is already in use by another account", [{ code: "EMAIL_EXISTS" }]);
@@ -199,14 +206,14 @@ const updateUser = asyncHandler(async (req, res) => {
     if (phone) user.phone = phone;
     if (gender) user.gender = gender;
     if (dateOfBirth) user.dateOfBirth = dateOfBirth;
+    if (bio) user.bio = bio;
 
     if (role) user.role = role;
-
     if (typeof isBlocked === "boolean") user.isBlocked = isBlocked;
 
     const updatedUser = await user.save();
 
-    if (!updatedUser) throw new ApiError(500, "Internal Server Error");
+    if (!updatedUser) throw new ApiError(500, "Internal Server Error while updating user");
 
     const responseUser = await User.findById(id).select("-password -refreshToken");
 

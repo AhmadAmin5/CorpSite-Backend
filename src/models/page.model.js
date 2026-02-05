@@ -1,26 +1,5 @@
 import mongoose from "mongoose";
 
-const blockSchema = new mongoose.Schema(
-    {
-        id: { type: String, required: true }, // Unique ID for frontend drag-and-drop
-        type: {
-            type: String,
-            required: true,
-            enum: ["hero", "text", "features", "testimonial"]
-        },
-        data: {
-            type: mongoose.Schema.Types.Mixed,
-            default: {}
-        },
-        settings: {
-            backgroundColor: { type: String, default: "transparent" },
-            paddingTop: { type: String, default: "md" },
-            paddingBottom: { type: String, default: "md" }
-        }
-    },
-    { _id: false }
-);
-
 const pageSchema = new mongoose.Schema(
     {
         title: {
@@ -36,6 +15,10 @@ const pageSchema = new mongoose.Schema(
             trim: true,
             index: true
         },
+        content: {
+            type: String,
+            required: false
+        },
         parent: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Page",
@@ -48,7 +31,6 @@ const pageSchema = new mongoose.Schema(
             trim: true,
             index: true
         },
-        blocks: [blockSchema],
         status: {
             type: String,
             enum: ["draft", "published", "archived", "private"],
@@ -60,19 +42,13 @@ const pageSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true
+        },
+        publishedAt: {
+            type: Date
         }
     },
     { timestamps: true }
 );
-
-pageSchema.pre("validate", function () {
-    if (this.title && !this.slug) {
-        this.slug = this.title
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)+/g, "");
-    }
-});
 
 pageSchema.pre("save", async function () {
     if (this.title && !this.slug) {

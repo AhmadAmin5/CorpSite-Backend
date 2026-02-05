@@ -67,7 +67,8 @@ const getPosts = asyncHandler(async (req, res) => {
         .populate("featuredImage", "url")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .select("-content");
 
     const totalPosts = await Post.countDocuments(filter);
 

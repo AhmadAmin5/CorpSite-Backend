@@ -8,11 +8,12 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-export const uploadToCloudinary = (buffer) => {
+export const uploadToCloudinary = (buffer, folder) => {
+    const path = folder ? process.env.CLOUDINARY_BASE_FOLDER + "/" + folder : process.env.CLOUDINARY_BASE_FOLDER;
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
             {
-                folder: "corpsite_uploads"
+                folder: path
             },
             (error, result) => {
                 if (error) return reject(error);

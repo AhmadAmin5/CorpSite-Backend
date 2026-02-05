@@ -11,7 +11,7 @@ const uploadMedia = asyncHandler(async (req, res) => {
 
     let result;
     try {
-        result = await uploadToCloudinary(req.file.buffer);
+        result = await uploadToCloudinary(req.file.buffer, "media");
     } catch (error) {
         throw new ApiError(500, "Image upload to cloud failed" + error, [{ code: "UPLOAD_FAILED" }]);
     }

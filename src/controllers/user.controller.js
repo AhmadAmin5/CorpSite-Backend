@@ -170,7 +170,7 @@ const updateUser = asyncHandler(async (req, res) => {
 
     if (req.file) {
         try {
-            const result = await uploadToCloudinary(req.file.buffer);
+            const result = await uploadToCloudinary(req.file.buffer, "profilePictures");
             
             if (result?.secure_url) {
                 user.profilePicture = result.secure_url;

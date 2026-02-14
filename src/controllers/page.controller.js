@@ -11,11 +11,17 @@ const createPage = asyncHandler(async (req, res) => {
         parent,
         status,
         metaTitle,
-        metaDescription
+        metaDescription,
+        pageType,
+        componentName
     } = req.body;
 
     if (!title) {
         throw new ApiError(400, "Title is required", [{ code: "MISSING_TITLE" }]);
+    }
+
+    if (pageType && pageType !== 'generic' && !componentName) {
+        throw new ApiError(400, "Component Name is required for Hardcoded/Functional pages", [{ code: "MISSING_COMPONENT_NAME" }]);
     }
 
     if (slug) {
@@ -40,6 +46,8 @@ const createPage = asyncHandler(async (req, res) => {
         status,
         metaTitle,
         metaDescription,
+        pageType: pageType || 'generic',
+        componentName,
         author: req.user._id,
         publishedAt: status === "published" ? Date.now() : null
     });
@@ -53,8 +61,13 @@ const getPages = asyncHandler(async (req, res) => {
     const skip = (page - 1) * limit;
 
     const filter = {};
+
     if (req.query.status) {
         filter.status = req.query.status;
+    }
+
+    if (req.query.pageType) {
+        filter.pageType = req.query.pageType;
     }
 
     if (req.query.search) {
@@ -76,9 +89,10 @@ const getPages = asyncHandler(async (req, res) => {
             {
                 pages,
                 pagination: {
-                    totalPages,
+                    totalDocs: totalPages,
                     currentPage: page,
-                    totalPages: Math.ceil(totalPages / limit)
+                    totalPages: Math.ceil(totalPages / limit),
+                    limit
                 }
             },
             "Pages fetched successfully"
@@ -111,7 +125,17 @@ const getPage = asyncHandler(async (req, res) => {
 
 const updatePage = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { title, slug, content, parent, status, metaTitle, metaDescription } = req.body;
+    const {
+        title,
+        slug,
+        content,
+        parent,
+        status,
+        metaTitle,
+        metaDescription,
+        pageType,
+        componentName
+    } = req.body;
 
     const page = await Page.findById(id);
 
@@ -119,6 +143,7 @@ const updatePage = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Page not found", [{ code: "PAGE_NOT_FOUND" }]);
     }
 
+    // Handle Slug Changes
     if (slug && slug !== page.slug) {
         const existingSlug = await Page.findOne({ slug });
         if (existingSlug && existingSlug._id.toString() !== id) {
@@ -127,6 +152,7 @@ const updatePage = asyncHandler(async (req, res) => {
         page.slug = slug;
     }
 
+    // Handle Parent Changes
     if (parent !== undefined && parent !== page.parent?.toString()) {
         if (parent === id) {
             throw new ApiError(400, "Page cannot be its own parent", [{ code: "INVALID_PARENT" }]);
@@ -138,10 +164,24 @@ const updatePage = asyncHandler(async (req, res) => {
                 throw new ApiError(404, "Parent page not found", [{ code: "PARENT_NOT_FOUND" }]);
             }
         }
-
         page.parent = parent || null;
     }
 
+    // Handle Type & Component Changes
+    if (pageType) {
+        page.pageType = pageType;
+    }
+
+    if (componentName !== undefined) {
+        page.componentName = componentName;
+    }
+
+
+    if (page.pageType !== 'generic' && !page.componentName) {
+        throw new ApiError(400, "Component Name is required when converting to Hardcoded/Functional page", [{ code: "MISSING_COMPONENT_NAME" }]);
+    }
+
+    // Standard Field Updates
     if (title) page.title = title;
     if (content !== undefined) page.content = content;
     if (metaTitle !== undefined) page.metaTitle = metaTitle;
@@ -160,6 +200,9 @@ const updatePage = asyncHandler(async (req, res) => {
     } catch (error) {
         if (error.code === 11000) {
             throw new ApiError(409, "Page URL/Path collision detected", [{ code: "PATH_EXISTS" }]);
+        }
+        if (error.name === 'ValidationError') {
+            throw new ApiError(400, error.message);
         }
         throw new ApiError(500, "Failed to update page");
     }

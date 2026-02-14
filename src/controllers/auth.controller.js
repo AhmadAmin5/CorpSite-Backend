@@ -33,7 +33,8 @@ const login = asyncHandler(async (req, res) => {
     
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user);
     
-    delete user.password;
+    user.password = undefined;
+    user.refreshToken = undefined;
 
     res.status(200)
         .cookie("refreshToken", refreshToken, cookieOptions)

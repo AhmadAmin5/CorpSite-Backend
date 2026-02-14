@@ -20,6 +20,8 @@ import mediaRouter from "./routes/media.routes.js";
 import postRouter from "./routes/post.routes.js";
 import categoryRouter from "./routes/category.routes.js";
 import pageRouter from "./routes/page.routes.js";
+import settingRouter from "./routes/setting.routes.js";
+import menuRouter from "./routes/menu.routes.js";
 
 // routes declaration
 
@@ -29,6 +31,8 @@ app.use(ApiVersion + "/media", mediaRouter);
 app.use(ApiVersion + "/post", postRouter);
 app.use(ApiVersion + "/category", categoryRouter);
 app.use(ApiVersion + "/page", pageRouter);
+app.use(ApiVersion + "/setting", settingRouter);
+app.use(ApiVersion + "/menu", menuRouter);
 
 app.use(errorHandler);
 

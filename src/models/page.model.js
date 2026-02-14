@@ -7,6 +7,21 @@ const pageSchema = new mongoose.Schema(
             required: true,
             trim: true
         },
+        pageType: {
+            type: String,
+            enum: ["generic", "hardcoded", "functional"], 
+            default: "generic",
+            index: true
+        },
+        componentName: {
+            type: String,
+            required: function() { return this.pageType !== 'generic'; },
+            trim: true
+        },
+        content: {
+            type: String,
+            required: false
+        },
         slug: {
             type: String,
             required: true,
@@ -14,10 +29,6 @@ const pageSchema = new mongoose.Schema(
             lowercase: true,
             trim: true,
             index: true
-        },
-        content: {
-            type: String,
-            required: false
         },
         parent: {
             type: mongoose.Schema.Types.ObjectId,

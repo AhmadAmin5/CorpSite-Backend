@@ -1,4 +1,3 @@
-// backend/routes/page.routes.js
 import { Router } from "express";
 import {
     createPage,
@@ -16,7 +15,7 @@ import { PERMISSIONS } from "../config/roles.js";
 const router = Router();
 
 router.route("/public").get(getPagesPublic);
-router.route("/public:slug").get(getPagePublic);
+router.route("/public/:slug").get(getPagePublic);
 
 router.use(verifyJWT, authorizeRoles(PERMISSIONS.CAN_MANAGE_CONTENT));
 

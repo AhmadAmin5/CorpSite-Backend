@@ -56,16 +56,23 @@ const getPages = asyncHandler(async (req, res) => {
 
     const filter = {};
 
-    if (req.query.status) {
-        filter.status = req.query.status;
-    }
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.pageType) filter.pageType = req.query.pageType;
+    if (req.query.search) filter.title = { $regex: req.query.search, $options: "i" };
 
-    if (req.query.pageType) {
-        filter.pageType = req.query.pageType;
-    }
-
-    if (req.query.search) {
-        filter.title = { $regex: req.query.search, $options: "i" };
+    // --- NEW PARENT LOGIC ---
+    if (req.query.parent !== undefined) {
+        if (req.query.parent === "null") {
+            filter.parent = null; 
+        } else {
+            const isId = req.query.parent.match(/^[0-9a-fA-F]{24}$/);
+            if (isId) {
+                filter.parent = req.query.parent;
+            } else {
+                const parentDoc = await Page.findOne({ slug: req.query.parent });
+                filter.parent = parentDoc ? parentDoc._id : "000000000000000000000000";
+            }
+        }
     }
 
     const pages = await Page.find(filter)
@@ -78,19 +85,15 @@ const getPages = asyncHandler(async (req, res) => {
     const totalPages = await Page.countDocuments(filter);
 
     return res.status(200).json(
-        new ApiResponse(
-            200,
-            {
-                pages,
-                pagination: {
-                    totalDocs: totalPages,
-                    currentPage: page,
-                    totalPages: Math.ceil(totalPages / limit),
-                    limit
-                }
-            },
-            "Pages fetched successfully"
-        )
+        new ApiResponse(200, {
+            pages,
+            pagination: {
+                totalDocs: totalPages,
+                currentPage: page,
+                totalPages: Math.ceil(totalPages / limit),
+                limit
+            }
+        }, "Pages fetched successfully")
     );
 });
 
@@ -105,8 +108,6 @@ const getPage = asyncHandler(async (req, res) => {
     } else {
         query = { $or: [{ fullPath: id }, { slug: id }] };
     }
-
-    logger.debug(query);
 
     const page = await Page.findOne(query)
         .populate("author", "fullName username profilePicture _id role")
@@ -124,16 +125,23 @@ const getPagesPublic = asyncHandler(async (req, res) => {
     const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const filter = {};
+    const filter = { status: "published" };
 
-    filter.status = "published";
+    if (req.query.pageType) filter.pageType = req.query.pageType;
+    if (req.query.search) filter.title = { $regex: req.query.search, $options: "i" };
 
-    if (req.query.pageType) {
-        filter.pageType = req.query.pageType;
-    }
-
-    if (req.query.search) {
-        filter.title = { $regex: req.query.search, $options: "i" };
+    if (req.query.parent !== undefined) {
+        if (req.query.parent === "null") {
+            filter.parent = null;
+        } else {
+            const isId = req.query.parent.match(/^[0-9a-fA-F]{24}$/);
+            if (isId) {
+                filter.parent = req.query.parent;
+            } else {
+                const parentDoc = await Page.findOne({ slug: req.query.parent });
+                filter.parent = parentDoc ? parentDoc._id : "000000000000000000000000";
+            }
+        }
     }
 
     const pages = await Page.find(filter)
@@ -146,26 +154,22 @@ const getPagesPublic = asyncHandler(async (req, res) => {
     const totalPages = await Page.countDocuments(filter);
 
     return res.status(200).json(
-        new ApiResponse(
-            200,
-            {
-                pages,
-                pagination: {
-                    totalDocs: totalPages,
-                    currentPage: page,
-                    totalPages: Math.ceil(totalPages / limit),
-                    limit
-                }
-            },
-            "Pages fetched successfully"
-        )
+        new ApiResponse(200, {
+            pages,
+            pagination: {
+                totalDocs: totalPages,
+                currentPage: page,
+                totalPages: Math.ceil(totalPages / limit),
+                limit
+            }
+        }, "Pages fetched successfully")
     );
 });
 
 const getPagePublic = asyncHandler(async (req, res) => {
     const { slug } = req.params;
 
-    const query = { slug, status: "published" };
+    const query = { fullPath : slug, status: "published" };
 
     const page = await Page.findOne(query)
         .populate("author", "fullName username profilePicture _id role")

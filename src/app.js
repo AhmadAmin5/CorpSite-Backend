@@ -33,6 +33,7 @@ import categoryRouter from "./routes/category.routes.js";
 import pageRouter from "./routes/page.routes.js";
 import settingRouter from "./routes/setting.routes.js";
 import menuRouter from "./routes/menu.routes.js";
+import contactRouter from "./routes/contact.routes.js";
 
 // routes declaration
 
@@ -44,6 +45,7 @@ app.use(ApiVersion + "/category", categoryRouter);
 app.use(ApiVersion + "/page", pageRouter);
 app.use(ApiVersion + "/setting", settingRouter);
 app.use(ApiVersion + "/menu", menuRouter);
+app.use(ApiVersion + "/contact", contactRouter);
 
 app.use(errorHandler);
 

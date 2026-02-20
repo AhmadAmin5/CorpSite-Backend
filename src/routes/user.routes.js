@@ -18,7 +18,7 @@ const router = Router();
 router.route("/check-username").post(checkUsername);
 router.route("/check-email").post(checkEmail);
 
-router.route("/:id").get(getUser)
+router.route("/:id").get(getUser);
 
 router.use(verifyJWT, authorizeRoles(PERMISSIONS.CAN_MANAGE_USERS));
 

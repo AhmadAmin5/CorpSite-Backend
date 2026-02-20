@@ -5,7 +5,6 @@ import crypto from "crypto";
 import User from "../models/user.model.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 
-
 const checkUsername = asyncHandler(async (req, res) => {
     const { username } = req.body;
     if (!username) throw new ApiError(400, "No username recieved", [{ code: "USERNAME_MISSING" }]);
@@ -171,12 +170,14 @@ const updateUser = asyncHandler(async (req, res) => {
     if (req.file) {
         try {
             const result = await uploadToCloudinary(req.file.buffer, "profilePictures");
-            
+
             if (result?.secure_url) {
                 user.profilePicture = result.secure_url;
             }
         } catch (error) {
-            throw new ApiError(500, "Failed to upload profile picture: " + error.message, [{ code: "UPLOAD_FAILED" }]);
+            throw new ApiError(500, "Failed to upload profile picture: " + error.message, [
+                { code: "UPLOAD_FAILED" }
+            ]);
         }
     }
 

@@ -30,20 +30,16 @@ const login = asyncHandler(async (req, res) => {
 
     if (!user.isActivated) throw new ApiError(401, "User not actived", [{ code: "NOT_ACTIVATED" }]);
     if (user.isBlocked) throw new ApiError(401, "User blocked", [{ code: "BLOCKED" }]);
-    
+
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user);
-    
+
     user.password = undefined;
     user.refreshToken = undefined;
 
     res.status(200)
         .cookie("refreshToken", refreshToken, cookieOptions)
         .json(
-            new ApiResponse(
-                200,
-                { user, accessToken },
-                "User logged in and tokens generated successfully"
-            )
+            new ApiResponse(200, { user, accessToken }, "User logged in and tokens generated successfully")
         );
 });
 
@@ -117,7 +113,7 @@ const updateUser = asyncHandler(async (req, res) => {
     if (req.file) {
         try {
             const result = await uploadToCloudinary(req.file.buffer, "profilePictures");
-            
+
             if (result?.secure_url) {
                 user.profilePicture = result.secure_url;
             }
@@ -133,11 +129,11 @@ const updateUser = asyncHandler(async (req, res) => {
     if (dateOfBirth) user.dateOfBirth = dateOfBirth;
 
     if (username && username !== user.username) {
-        const existingUser = await User.findOne({ 
-            username, 
-            _id: { $ne: user._id } 
+        const existingUser = await User.findOne({
+            username,
+            _id: { $ne: user._id }
         });
-        
+
         if (existingUser) {
             throw new ApiError(409, "Username is already taken");
         }
@@ -145,13 +141,11 @@ const updateUser = asyncHandler(async (req, res) => {
     }
 
     const updatedUser = await user.save();
-    
+
     updatedUser.password = undefined;
     updatedUser.refreshToken = undefined;
 
-    return res
-        .status(200)
-        .json(new ApiResponse(200, updatedUser, "Profile updated successfully"));
+    return res.status(200).json(new ApiResponse(200, updatedUser, "Profile updated successfully"));
 });
 
 const me = asyncHandler(async (req, res) => {

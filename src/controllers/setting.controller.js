@@ -5,7 +5,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 
 const getSettings = asyncHandler(async (req, res) => {
     const settings = await Setting.find({});
-    
+
     // Convert array to object for easier frontend access: { menu_locations: {...}, site_title: "..." }
     const settingsMap = settings.reduce((acc, curr) => {
         acc[curr.key] = curr.value;
@@ -22,12 +22,12 @@ const updateSetting = asyncHandler(async (req, res) => {
 
     const setting = await Setting.findOneAndUpdate(
         { key },
-        { 
-            value, 
-            group: group || 'general', 
-            description: description || '' 
+        {
+            value,
+            group: group || "general",
+            description: description || ""
         },
-        { new: true, upsert: true } 
+        { new: true, upsert: true }
     );
 
     return res.status(200).json(new ApiResponse(200, setting, "Setting updated"));

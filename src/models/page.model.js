@@ -9,13 +9,15 @@ const pageSchema = new mongoose.Schema(
         },
         pageType: {
             type: String,
-            enum: ["generic", "hardcoded", "functional"], 
+            enum: ["generic", "hardcoded", "functional"],
             default: "generic",
             index: true
         },
         componentName: {
             type: String,
-            required: function() { return this.pageType !== 'generic'; },
+            required: function () {
+                return this.pageType !== "generic";
+            },
             trim: true
         },
         content: {

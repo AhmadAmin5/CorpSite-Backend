@@ -2,26 +2,20 @@ import ApiResponse from "../utils/ApiResponse.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import Page from "../models/page.model.js";
+import logger from "../utils/logger.js";
 
 const createPage = asyncHandler(async (req, res) => {
-    const {
-        title,
-        slug,
-        content,
-        parent,
-        status,
-        metaTitle,
-        metaDescription,
-        pageType,
-        componentName
-    } = req.body;
+    const { title, slug, content, parent, status, metaTitle, metaDescription, pageType, componentName } =
+        req.body;
 
     if (!title) {
         throw new ApiError(400, "Title is required", [{ code: "MISSING_TITLE" }]);
     }
 
-    if (pageType && pageType !== 'generic' && !componentName) {
-        throw new ApiError(400, "Component Name is required for Hardcoded/Functional pages", [{ code: "MISSING_COMPONENT_NAME" }]);
+    if (pageType && pageType !== "generic" && !componentName) {
+        throw new ApiError(400, "Component Name is required for Hardcoded/Functional pages", [
+            { code: "MISSING_COMPONENT_NAME" }
+        ]);
     }
 
     if (slug) {
@@ -46,7 +40,7 @@ const createPage = asyncHandler(async (req, res) => {
         status,
         metaTitle,
         metaDescription,
-        pageType: pageType || 'generic',
+        pageType: pageType || "generic",
         componentName,
         author: req.user._id,
         publishedAt: status === "published" ? Date.now() : null
@@ -112,6 +106,67 @@ const getPage = asyncHandler(async (req, res) => {
         query = { $or: [{ fullPath: id }, { slug: id }] };
     }
 
+    logger.debug(query);
+
+    const page = await Page.findOne(query)
+        .populate("author", "fullName username profilePicture _id role")
+        .populate("parent", "title slug fullPath");
+
+    if (!page) {
+        throw new ApiError(404, "Page not found", [{ code: "PAGE_NOT_FOUND" }]);
+    }
+
+    return res.status(200).json(new ApiResponse(200, page, "Page fetched successfully"));
+});
+
+const getPagesPublic = asyncHandler(async (req, res) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+
+    filter.status = "published";
+
+    if (req.query.pageType) {
+        filter.pageType = req.query.pageType;
+    }
+
+    if (req.query.search) {
+        filter.title = { $regex: req.query.search, $options: "i" };
+    }
+
+    const pages = await Page.find(filter)
+        .populate("author", "fullName username profilePicture _id role")
+        .populate("parent", "title slug fullPath")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+    const totalPages = await Page.countDocuments(filter);
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                pages,
+                pagination: {
+                    totalDocs: totalPages,
+                    currentPage: page,
+                    totalPages: Math.ceil(totalPages / limit),
+                    limit
+                }
+            },
+            "Pages fetched successfully"
+        )
+    );
+});
+
+const getPagePublic = asyncHandler(async (req, res) => {
+    const { slug } = req.params;
+
+    const query = { slug, status: "published" };
+
     const page = await Page.findOne(query)
         .populate("author", "fullName username profilePicture _id role")
         .populate("parent", "title slug fullPath");
@@ -125,17 +180,8 @@ const getPage = asyncHandler(async (req, res) => {
 
 const updatePage = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const {
-        title,
-        slug,
-        content,
-        parent,
-        status,
-        metaTitle,
-        metaDescription,
-        pageType,
-        componentName
-    } = req.body;
+    const { title, slug, content, parent, status, metaTitle, metaDescription, pageType, componentName } =
+        req.body;
 
     const page = await Page.findById(id);
 
@@ -176,9 +222,10 @@ const updatePage = asyncHandler(async (req, res) => {
         page.componentName = componentName;
     }
 
-
-    if (page.pageType !== 'generic' && !page.componentName) {
-        throw new ApiError(400, "Component Name is required when converting to Hardcoded/Functional page", [{ code: "MISSING_COMPONENT_NAME" }]);
+    if (page.pageType !== "generic" && !page.componentName) {
+        throw new ApiError(400, "Component Name is required when converting to Hardcoded/Functional page", [
+            { code: "MISSING_COMPONENT_NAME" }
+        ]);
     }
 
     // Standard Field Updates
@@ -201,7 +248,7 @@ const updatePage = asyncHandler(async (req, res) => {
         if (error.code === 11000) {
             throw new ApiError(409, "Page URL/Path collision detected", [{ code: "PATH_EXISTS" }]);
         }
-        if (error.name === 'ValidationError') {
+        if (error.name === "ValidationError") {
             throw new ApiError(400, error.message);
         }
         throw new ApiError(500, "Failed to update page");
@@ -226,4 +273,4 @@ const deletePage = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, { id }, "Page deleted successfully"));
 });
 
-export { createPage, getPages, getPage, updatePage, deletePage };
+export { createPage, getPages, getPage, getPagesPublic, getPagePublic, updatePage, deletePage };

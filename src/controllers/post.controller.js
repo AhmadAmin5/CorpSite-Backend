@@ -105,6 +105,66 @@ const getPost = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, post, "Post fetched successfully"));
 });
 
+const getPostsPublic = asyncHandler(async (req, res) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+
+    filter.status = "published";
+
+    if (req.query.search) {
+        filter.title = { $regex: req.query.search, $options: "i" };
+    }
+
+    if (req.query.category) {
+        filter.category = req.query.category;
+    }
+
+    const posts = await Post.find(filter)
+        .populate("author", "fullName username profilePicture _id role")
+        .populate("featuredImage", "url")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select("-content");
+
+    const totalPosts = await Post.countDocuments(filter);
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                posts,
+                pagination: {
+                    totalPosts,
+                    currentPage: page,
+                    totalPages: Math.ceil(totalPosts / limit)
+                }
+            },
+            "Posts fetched successfully"
+        )
+    );
+});
+
+const getPostPublic = asyncHandler(async (req, res) => {
+    const { slug } = req.params;
+    console.log("Test");
+
+    const query = { slug, status: "published" };
+
+    const post = await Post.findOne(query)
+        .populate("author", "fullName username profilePicture _.id role")
+        .populate("featuredImage");
+
+    if (!post) {
+        throw new ApiError(404, "Post not found", [{ code: "POST_NOT_FOUND" }]);
+    }
+
+    return res.status(200).json(new ApiResponse(200, post, "Post fetched successfully"));
+});
+
 const updatePost = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const {
@@ -177,4 +237,4 @@ const deletePost = asyncHandler(async (req, res) => {
     }
 });
 
-export { createPost, getPosts, getPost, updatePost, deletePost };
+export { createPost, getPosts, getPost, getPostsPublic, getPostPublic, updatePost, deletePost };

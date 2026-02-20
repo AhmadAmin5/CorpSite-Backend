@@ -9,7 +9,9 @@ cloudinary.config({
 });
 
 export const uploadToCloudinary = (buffer, folder) => {
-    const path = folder ? process.env.CLOUDINARY_BASE_FOLDER + "/" + folder : process.env.CLOUDINARY_BASE_FOLDER;
+    const path = folder
+        ? process.env.CLOUDINARY_BASE_FOLDER + "/" + folder
+        : process.env.CLOUDINARY_BASE_FOLDER;
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
             {

@@ -9,7 +9,10 @@ const createMenu = asyncHandler(async (req, res) => {
     if (!name) throw new ApiError(400, "Name is required");
 
     if (!slug) {
-        slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+        slug = name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)+/g, "");
     }
 
     const existing = await Menu.findOne({ slug });

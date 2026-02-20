@@ -12,6 +12,17 @@ app.use(express.urlencoded({ extended: true, limit: "32mb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
+// app.use((req, res, next) => {
+//     console.log(`Delaying request to ${req.url} for 3 seconds...`);
+//     setTimeout(() => {
+//         next();
+//     }, 5000);
+// });
+
+app.get('/api/v1/health', (req, res) => {
+    res.status(200).json({ status: 'ok', message: 'Server is awake' });
+});
+
 // routes import
 
 import authRoutes from "./routes/auth.routes.js";

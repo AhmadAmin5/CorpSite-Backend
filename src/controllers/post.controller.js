@@ -150,7 +150,6 @@ const getPostsPublic = asyncHandler(async (req, res) => {
 
 const getPostPublic = asyncHandler(async (req, res) => {
     const { slug } = req.params;
-    console.log("Test");
 
     const query = { slug, status: "published" };
 
